@@ -2585,7 +2585,7 @@ bool Planner::_populate_block(
       // never be more than one extruder step per call. Since we use the Bresenham algorithm
       // this means E steps * 2 ^ la_scaling is at least half of step_event_count and no more
       // step_event_count.
-      for (uint32_t dividend = block->steps.e << 1; dividend <= block->step_event_count; dividend <<= 1)
+      for (uint32_t dividend = block->steps.e << 1; dividend <= (block->step_event_count >> 2); dividend <<= 1)
         block->la_scaling++;
 
       #if ENABLED(LA_DEBUG)
