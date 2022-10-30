@@ -2017,6 +2017,16 @@ void Stepper::pulse_phase_isr() {
       if (!shaping_dividend_queue.peek_y()) shaping_y.dividend = shaping_dividend_queue.dequeue_y();
     #endif
     }
+
+    // if a new dividend appears in the same "moment" that a step takes place, it is because
+    // the step is the last step of a segment and the new dividend is for the new segment
+    // so only update the dividend after the step
+    #if HAS_SHAPING_X
+      if (!shaping_dividend_queue.peek_x()) shaping_x.dividend = shaping_dividend_queue.dequeue_x();
+    #endif
+    #if HAS_SHAPING_Y
+      if (!shaping_dividend_queue.peek_y()) shaping_y.dividend = shaping_dividend_queue.dequeue_y();
+    #endif
   }
 
 #endif // INPUT_SHAPING

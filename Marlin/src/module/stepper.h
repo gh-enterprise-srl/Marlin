@@ -423,7 +423,7 @@ constexpr ena_mask_t enable_overlap[] = {
     float frequency;
     float zeta;
     uint8_t factor;
-    int32_t dividend;
+    int32_t dividend = 0UL;
     int32_t remainder = 0UL;
   };
 
