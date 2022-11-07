@@ -50,6 +50,19 @@
 #define _TMC5160            0x5160A
 #define _TMC5160_STANDALONE 0x5160B
 
+// GH Smart Shaper
+#if X_DRIVER_TYPE == GH_SMARTSHAPER
+  #undef  X_DRIVER_TYPE
+  #define X_DRIVER_TYPE TMC2208
+  #define HAS_GH_SHAPING_X 1
+#endif
+
+#if Y_DRIVER_TYPE == GH_SMARTSHAPER
+  #undef  Y_DRIVER_TYPE
+  #define Y_DRIVER_TYPE TMC2208
+  #define HAS_GH_SHAPING_Y 1
+#endif
+
 #define _DRIVER_ID(V) _CAT(_, V)
 #define _AXIS_DRIVER_TYPE(A,T) (_DRIVER_ID(A##_DRIVER_TYPE) == _DRIVER_ID(T))
 
@@ -189,3 +202,4 @@
 #if HAS_DRIVER(TMC26X)
   #define HAS_TMC26X 1
 #endif
+
