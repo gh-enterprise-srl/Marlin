@@ -420,6 +420,16 @@ constexpr ena_mask_t enable_overlap[] = {
   };
 
   struct ShapeParams {
+    enum ISType {
+      ZV,
+      EI,
+      H2EI,      
+      ZV_SMART_SHAPER=20,
+      MZV_SMART_SHAPER=21,
+      ZVD_SMART_SHAPER=22,
+      EI_SMART_SHAPER=23,
+    };
+    ISType type;
     float frequency;
     float zeta;
     uint8_t factor;
