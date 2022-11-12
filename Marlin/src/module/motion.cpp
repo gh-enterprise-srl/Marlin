@@ -66,6 +66,10 @@
   #include "../feature/babystep.h"
 #endif
 
+#if ENABLED(GH_INPUT_SHAPING)
+  #include "../module/stepper/gh.h"
+#endif
+
 #define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
 #include "../core/debug_out.h"
 
@@ -1940,6 +1944,10 @@ void prepare_line_to_destination() {
    */
 
   void homeaxis(const AxisEnum axis) {
+
+    #if ENABLED(GH_INPUT_SHAPING)
+      update_smartshaper(axis);
+    #endif
 
     #if EITHER(MORGAN_SCARA, MP_SCARA)
       // Only Z homing (with probe) is permitted

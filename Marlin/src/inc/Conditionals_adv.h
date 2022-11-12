@@ -1118,7 +1118,7 @@
   #define CALC_FAN_SPEED(f) (f ? map(f, 1, 255, FAN_MIN_PWM, FAN_MAX_PWM) : FAN_OFF_PWM)
 #endif
 
-// Input shaping
+// Input shaping software
 #if ENABLED(INPUT_SHAPING)
   #if !HAS_Y_AXIS
     #undef SHAPING_FREQ_Y
@@ -1130,4 +1130,26 @@
   #ifdef SHAPING_FREQ_Y
     #define HAS_SHAPING_Y 1
   #endif
+#endif
+
+// Input shaping on GH external Driver
+#if ENABLED(GH_INPUT_SHAPING)
+  #undef BABYSTEP_WITHOUT_HOMING
+  #undef BABYSTEP_ALWAYS_AVAILABLE
+  #undef BABYSTEP_XY
+  #undef BABYSTEP_MULTIPLICATOR_XY
+  #define BABYSTEP_WITHOUT_HOMING
+  #define BABYSTEP_ALWAYS_AVAILABLE
+  #define BABYSTEP_XY
+  #define BABYSTEP_MULTIPLICATOR_XY 1
+#endif
+
+#if HAS_SHAPING_X || HAS_GH_SHAPING_X
+  #define HAS_ANY_SHAPING_X 1
+#endif
+#if HAS_SHAPING_Y || HAS_GH_SHAPING_Y
+  #define HAS_ANY_SHAPING_Y 1
+#endif
+#if ENABLED(INPUT_SHAPING) || ENABLED(GH_INPUT_SHAPING)
+  #define ANY_INPUT_SHAPING 1
 #endif

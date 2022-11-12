@@ -418,18 +418,30 @@ constexpr ena_mask_t enable_overlap[] = {
         }
       #endif
   };
+  #endif
+
+  #if ENABLED(ANY_INPUT_SHAPING)
 
   struct ShapeParams {
     enum ISType {
       ZV,
       EI,
       H2EI,      
-      ZV_SMART_SHAPER=20,
-      MZV_SMART_SHAPER=21,
-      ZVD_SMART_SHAPER=22,
-      EI_SMART_SHAPER=23,
+#ifdef GH_INPUT_SHAPING
+      ZV_SMART_SHAPER = 20,
+      MZV_SMART_SHAPER = 21,
+      ZVD_SMART_SHAPER = 22,
+      EI_SMART_SHAPER = 23,
+#endif
+      UNKNWON_TYPE
     };
-    ISType type;
+#ifdef GH_INPUT_SHAPING
+    inline bool gh_shaping_selected() const {
+      return is_type >= ZV_SMART_SHAPER && is_type <= EI_SMART_SHAPER;
+    }
+#endif
+    inline bool shaping_disabled() const { return frequency == 0.0f;}
+    ISType is_type;
     float frequency;
     float zeta;
     uint8_t factor;
@@ -438,7 +450,7 @@ constexpr ena_mask_t enable_overlap[] = {
     int32_t last_block_end_pos = 0;
   };
 
-#endif // INPUT_SHAPING
+#endif // HAS_ANY_SHAPING
 
 //
 // Stepper class definition
@@ -547,12 +559,12 @@ class Stepper {
     #if ENABLED(INPUT_SHAPING)
       static ParamDelayQueue shaping_dividend_queue;
       static DelayQueue<shaping_dividends> shaping_queue;
-      #if HAS_SHAPING_X
-        static ShapeParams shaping_x;
-      #endif
-      #if HAS_SHAPING_Y
-        static ShapeParams shaping_y;
-      #endif
+    #endif
+    #if HAS_ANY_SHAPING_X
+      static ShapeParams shaping_x;
+    #endif
+    #if HAS_ANY_SHAPING_Y
+      static ShapeParams shaping_y;
     #endif
 
     #if ENABLED(LIN_ADVANCE)
@@ -735,6 +747,10 @@ class Stepper {
       static void do_babystep(const AxisEnum axis, const bool direction); // perform a short step with a single stepper motor, outside of any convention
     #endif
 
+    #if ENABLED(GH_INPUT_SHAPING)    
+      static void do_babystep_without_enable(const AxisEnum axis, const bool direction); // perform a short step with a single stepper motor, outside of any convention without enabling driver
+    #endif
+
     #if HAS_MOTOR_CURRENT_PWM
       static void refresh_motor_power();
     #endif
@@ -785,11 +801,12 @@ class Stepper {
       set_directions();
     }
 
-    #if ENABLED(INPUT_SHAPING)
+    #if ENABLED(ANY_INPUT_SHAPING)
       static void set_shaping_damping_ratio(const AxisEnum axis, const float zeta);
       static float get_shaping_damping_ratio(const AxisEnum axis);
       static void set_shaping_frequency(const AxisEnum axis, const float freq);
       static float get_shaping_frequency(const AxisEnum axis);
+      static ShapeParams::ISType get_shaping_type(const AxisEnum axis);
     #endif
 
   private:

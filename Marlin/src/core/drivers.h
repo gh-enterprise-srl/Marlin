@@ -63,6 +63,11 @@
   #define HAS_GH_SHAPING_Y 1
 #endif
 
+#if HAS_GH_SHAPING_X || HAS_GH_SHAPING_Y
+  #define GH_INPUT_SHAPING 1
+#endif
+
+
 #define _DRIVER_ID(V) _CAT(_, V)
 #define _AXIS_DRIVER_TYPE(A,T) (_DRIVER_ID(A##_DRIVER_TYPE) == _DRIVER_ID(T))
 

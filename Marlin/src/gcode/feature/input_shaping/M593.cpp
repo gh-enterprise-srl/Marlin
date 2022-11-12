@@ -22,10 +22,11 @@
 
 #include "../../../inc/MarlinConfig.h"
 
-#if ENABLED(INPUT_SHAPING)
+#if ENABLED(ANY_INPUT_SHAPING)
 
 #include "../../gcode.h"
 #include "../../../module/stepper.h"
+#include "../../../module/stepper/gh.h"
 
 void GcodeSuite::M593_report(const bool forReplay/*=true*/) {
   report_heading_etc(forReplay, F("Input Shaping"));
@@ -55,10 +56,10 @@ void GcodeSuite::M593_report(const bool forReplay/*=true*/) {
 void GcodeSuite::M593() {
   if (!parser.seen_any()) return M593_report();
 
-  const bool seen_X = TERN0(HAS_SHAPING_X, parser.seen_test('X')),
-             seen_Y = TERN0(HAS_SHAPING_Y, parser.seen_test('Y')),
-             for_X = seen_X || TERN0(HAS_SHAPING_X, (!seen_X && !seen_Y)),
-             for_Y = seen_Y || TERN0(HAS_SHAPING_Y, (!seen_X && !seen_Y));
+  const bool seen_X = TERN0(HAS_ANY_SHAPING_X, parser.seen_test('X')),
+             seen_Y = TERN0(HAS_ANY_SHAPING_Y, parser.seen_test('Y')),
+             for_X = seen_X || TERN0(HAS_ANY_SHAPING_X, (!seen_X && !seen_Y)),
+             for_Y = seen_Y || TERN0(HAS_ANY_SHAPING_Y, (!seen_X && !seen_Y));
 
   if (parser.seen('D')) {
     const float zeta = parser.value_float();
@@ -71,6 +72,7 @@ void GcodeSuite::M593() {
   }
 
   if (parser.seen('F')) {
+    #if ENABLED(INPUT_SHAPING)
     const float freq = parser.value_float();
     constexpr float max_freq = float(uint32_t(STEPPER_TIMER_RATE) / 2) / shaping_time_t(-2);
     if (freq == 0.0f || freq > max_freq) {
@@ -79,7 +81,11 @@ void GcodeSuite::M593() {
     }
     else
       SERIAL_ECHOLNPGM("?Frequency (F) must be greater than ", max_freq, " or 0 to disable");
+    #endif
   }
+
+  // if (for_X) update_smartshaper(X_AXIS);
+  // if (for_Y) update_smartshaper(Y_AXIS);      
 }
 
 #endif

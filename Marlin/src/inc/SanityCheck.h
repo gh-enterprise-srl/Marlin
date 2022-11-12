@@ -4280,6 +4280,27 @@ static_assert(_PLUS_TEST(4), "HOMING_FEEDRATE_MM_M values must be positive.");
   #endif
 #endif
 
+#if ENABLED(INPUT_SHAPING)
+  #if ENABLED(GH_INPUT_SHAPING)
+    #error "INPUT_SHAPING cannot currently be used with GH_SMARTSHAPER drivers."
+  #endif
+#endif
+
+
+#if ENABLED(GH_INPUT_SHAPING)
+  #if DISABLED(BABYSTEPPING)
+    #error "GH_SMARTSHAPER drivers require BABYSTEPPING."
+  #endif
+#endif
+
+#if HAS_GH_SHAPING_X && HAS_SHAPING_X
+  #error "DRIVER GH SmartShaper Axis X cannot cohexist with INPUT_SHAPING on X."
+#endif
+
+#if HAS_GH_SHAPING_Y && HAS_SHAPING_Y
+  #error "DRIVER GH SmartShaper Axis Y cannot cohexist with INPUT_SHAPING on Y."
+#endif
+
 // Misc. Cleanup
 #undef _TEST_PWM
 #undef _NUM_AXES_STR

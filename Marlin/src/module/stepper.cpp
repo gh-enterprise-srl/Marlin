@@ -238,12 +238,16 @@ uint32_t Stepper::advance_divisor = 0,
   DelayQueue<shaping_dividends> Stepper::shaping_queue;
   #if HAS_SHAPING_X
     shaping_time_t DelayTimeManager::delay_x;
-    ShapeParams Stepper::shaping_x;
   #endif
   #if HAS_SHAPING_Y
     shaping_time_t DelayTimeManager::delay_y;
-    ShapeParams Stepper::shaping_y;
   #endif
+#endif
+#if HAS_ANY_SHAPING_X
+    ShapeParams Stepper::shaping_x;
+#endif
+#if HAS_ANY_SHAPING_Y
+    ShapeParams Stepper::shaping_y;
 #endif
 
 #if ENABLED(INTEGRATED_BABYSTEPPING)
@@ -1636,7 +1640,7 @@ void Stepper::pulse_phase_isr() {
     abort_current_block = false;
     if (current_block) {
       discard_current_block();
-      #if ENABLED(INPUT_SHAPING)
+      #if INPUT_SHAPING
         shaping_dividend_queue.purge();
         shaping_queue.purge();
         if (TERN0(HAS_SHAPING_X, shaping_x.frequency)) delta_error.x = 0;
@@ -3017,69 +3021,78 @@ void Stepper::init() {
   #endif
 }
 
-#if ENABLED(INPUT_SHAPING)
+#if ENABLED(ANY_INPUT_SHAPING)
   /**
    * Calculate a fixed point factor to apply to the signal and its echo
    * when shaping an axis.
    */
   void Stepper::set_shaping_damping_ratio(const AxisEnum axis, const float zeta) {
-    // from the damping ratio, get a factor that can be applied to advance_dividend for fixed point maths
-    // for ZV, we use amplitudes 1/(1+K) and K/(1+K) where K = exp(-zeta * M_PI / sqrt(1.0f - zeta * zeta))
-    // which can be converted to 1:7 fixed point with an excellent fit with a 3rd order polynomial
-    float shaping_factor;
-    if (zeta <= 0.0f) shaping_factor = 64.0f;
-    else if (zeta >= 1.0f) shaping_factor = 0.0f;
-    else {
-      shaping_factor = 64.44056192 + -99.02008832 * zeta;
-      const float zeta2 = zeta * zeta;
-      shaping_factor += -7.58095488 * zeta2;
-      const float zeta3 = zeta2 * zeta;
-      shaping_factor += 43.073216 * zeta3;
-    }
+    #if ENABLED(INPUT_SHAPING)
+      // from the damping ratio, get a factor that can be applied to advance_dividend for fixed point maths
+      // for ZV, we use amplitudes 1/(1+K) and K/(1+K) where K = exp(-zeta * M_PI / sqrt(1.0f - zeta * zeta))
+      // which can be converted to 1:7 fixed point with an excellent fit with a 3rd order polynomial
+      float shaping_factor;
+      if (zeta <= 0.0f) shaping_factor = 64.0f;
+      else if (zeta >= 1.0f) shaping_factor = 0.0f;
+      else {
+        shaping_factor = 64.44056192 + -99.02008832 * zeta;
+        const float zeta2 = zeta * zeta;
+        shaping_factor += -7.58095488 * zeta2;
+        const float zeta3 = zeta2 * zeta;
+        shaping_factor += 43.073216 * zeta3;
+      }
 
-    const bool was_on = hal.isr_state();
-    hal.isr_off();
-    TERN_(HAS_SHAPING_X, if (axis == X_AXIS) { shaping_x.factor = floor(shaping_factor); shaping_x.zeta = zeta; })
-    TERN_(HAS_SHAPING_Y, if (axis == Y_AXIS) { shaping_y.factor = floor(shaping_factor); shaping_y.zeta = zeta; })
-    if (was_on) hal.isr_on();
+      const bool was_on = hal.isr_state();
+      hal.isr_off();
+      TERN_(HAS_SHAPING_X, if (axis == X_AXIS) { shaping_x.factor = floor(shaping_factor); shaping_x.zeta = zeta; })
+      TERN_(HAS_SHAPING_Y, if (axis == Y_AXIS) { shaping_y.factor = floor(shaping_factor); shaping_y.zeta = zeta; })
+      if (was_on) hal.isr_on();
+    #endif
   }
 
   float Stepper::get_shaping_damping_ratio(const AxisEnum axis) {
-    TERN_(HAS_SHAPING_X, if (axis == X_AXIS) return shaping_x.zeta);
-    TERN_(HAS_SHAPING_Y, if (axis == Y_AXIS) return shaping_y.zeta);
+    TERN_(HAS_ANY_SHAPING_X, if (axis == X_AXIS) return shaping_x.zeta);
+    TERN_(HAS_ANY_SHAPING_Y, if (axis == Y_AXIS) return shaping_y.zeta);
     return -1;
   }
 
   void Stepper::set_shaping_frequency(const AxisEnum axis, const float freq) {
-    // enabling or disabling shaping whilst moving can result in lost steps
-    Planner::synchronize();
+    #if ENABLED(INPUT_SHAPING)
+      // enabling or disabling shaping whilst moving can result in lost steps
+      Planner::synchronize();
 
-    const bool was_on = hal.isr_state();
-    hal.isr_off();
+      const bool was_on = hal.isr_state();
+      hal.isr_off();
 
-    const shaping_time_t delay = freq ? float(uint32_t(STEPPER_TIMER_RATE) / 2) / freq : shaping_time_t(-1);
-    if (TERN0(HAS_SHAPING_X, axis == X_AXIS)) {
-      DelayTimeManager::set_delay(X_AXIS, delay);
-      TERN_(HAS_SHAPING_X, shaping_x.frequency = freq);
-      delta_error = 0L;
-      TERN_(HAS_SHAPING_X, shaping_x.last_block_end_pos = count_position.x);
-      TERN_(HAS_SHAPING_X, shaping_x.dividend = shaping_x.remainder = 0UL);
-    }
-    if (TERN0(HAS_SHAPING_Y, axis == Y_AXIS)) {
-      DelayTimeManager::set_delay(Y_AXIS, delay);
-      TERN_(HAS_SHAPING_Y, shaping_y.frequency = freq);
-      delta_error = 0L;
-      TERN_(HAS_SHAPING_Y, shaping_y.last_block_end_pos = count_position.y);
-      TERN_(HAS_SHAPING_Y, shaping_y.dividend = shaping_y.remainder = 0UL);
-    }
+      const shaping_time_t delay = freq ? float(uint32_t(STEPPER_TIMER_RATE) / 2) / freq : shaping_time_t(-1);
+      if (TERN0(HAS_SHAPING_X, axis == X_AXIS)) {
+        DelayTimeManager::set_delay(X_AXIS, delay);
+        TERN_(HAS_SHAPING_X, shaping_x.frequency = freq);
+        delta_error = 0L;
+        TERN_(HAS_SHAPING_X, shaping_x.last_block_end_pos = count_position.x);
+        TERN_(HAS_SHAPING_X, shaping_x.dividend = shaping_x.remainder = 0UL);
+      }
+      if (TERN0(HAS_SHAPING_Y, axis == Y_AXIS)) {
+        DelayTimeManager::set_delay(Y_AXIS, delay);
+        TERN_(HAS_SHAPING_Y, shaping_y.frequency = freq);
+        delta_error = 0L;
+        TERN_(HAS_SHAPING_Y, shaping_y.last_block_end_pos = count_position.y);
+        TERN_(HAS_SHAPING_Y, shaping_y.dividend = shaping_y.remainder = 0UL);
+      }
 
-    if (was_on) hal.isr_on();
+      if (was_on) hal.isr_on();
+    #endif
   }
 
   float Stepper::get_shaping_frequency(const AxisEnum axis) {
-    TERN_(HAS_SHAPING_X, if (axis == X_AXIS) return shaping_x.frequency);
-    TERN_(HAS_SHAPING_Y, if (axis == Y_AXIS) return shaping_y.frequency);
+    TERN_(HAS_ANY_SHAPING_X, if (axis == X_AXIS) return shaping_x.frequency);
+    TERN_(HAS_ANY_SHAPING_Y, if (axis == Y_AXIS) return shaping_y.frequency);
     return -1;
+  }
+  ShapeParams::ISType Stepper::get_shaping_type(const AxisEnum axis) {
+    TERN_(HAS_ANY_SHAPING_X, if (axis == X_AXIS) return shaping_x.is_type);
+    TERN_(HAS_ANY_SHAPING_Y, if (axis == Y_AXIS) return shaping_y.is_type);
+    return ShapeParams::UNKNWON_TYPE;
   }
 #endif
 
@@ -3345,6 +3358,21 @@ void Stepper::report_positions() {
       EXTRA_DIR_WAIT_AFTER();                           \
     }while(0)
 
+    #if ENABLED(GH_INPUT_SHAPING)
+      #define BABYSTEP_AXIS_NO_ENABLE(AXIS, INV, DIR) do{  \
+        const uint8_t old_dir = _READ_DIR(AXIS);           \
+        DIR_WAIT_BEFORE();                                 \
+        _APPLY_DIR(AXIS, _INVERT_DIR(AXIS)^DIR^INV);       \
+        DIR_WAIT_AFTER();                                  \
+        _SAVE_START();                                     \
+        _APPLY_STEP(AXIS, !_INVERT_STEP_PIN(AXIS), true);  \
+        _PULSE_WAIT();                                     \
+        _APPLY_STEP(AXIS, _INVERT_STEP_PIN(AXIS), true);   \
+        DELAY_NS(2000);                                    \
+        _APPLY_DIR(AXIS, old_dir);                         \
+        EXTRA_DIR_WAIT_AFTER();                            \
+      }while(0)
+    #endif
   #endif
 
   #if IS_CORE
@@ -3566,6 +3594,37 @@ void Stepper::report_positions() {
         case W_AXIS: BABYSTEP_AXIS(W, 0, direction); break;
       #endif
 
+      default: break;
+    }
+
+    IF_DISABLED(INTEGRATED_BABYSTEPPING, sei());
+  }
+
+  void Stepper::do_babystep_without_enable(const AxisEnum axis, const bool direction) {
+
+    IF_DISABLED(INTEGRATED_BABYSTEPPING, cli());
+
+    switch (axis) {
+
+        case X_AXIS:
+          #if CORE_IS_XY
+            BABYSTEP_CORE(X, Y, 0, direction, 0);
+          #elif CORE_IS_XZ
+            BABYSTEP_CORE(X, Z, 0, direction, 0);
+          #else
+            BABYSTEP_AXIS_NO_ENABLE(X, 0, direction);
+          #endif
+          break;
+
+        case Y_AXIS:
+          #if CORE_IS_XY
+            BABYSTEP_CORE(X, Y, 1, !direction, (CORESIGN(1)>0));
+          #elif CORE_IS_YZ
+            BABYSTEP_CORE(Y, Z, 0, direction, (CORESIGN(1)<0));
+          #else
+            BABYSTEP_AXIS_NO_ENABLE(Y, 0, direction);
+          #endif
+          break;
       default: break;
     }
 
