@@ -29,6 +29,5 @@
 
 #if ENABLED(GH_INPUT_SHAPING)
 #include "../stepper.h"
-void configure_smartshapers();
-void update_smartshaper(AxisEnum a);
+void program_smartshaper(AxisEnum a, bool disable_motor_while_configuring);
 #endif

@@ -3047,6 +3047,9 @@ void Stepper::init() {
       TERN_(HAS_SHAPING_X, if (axis == X_AXIS) { shaping_x.factor = floor(shaping_factor); shaping_x.zeta = zeta; })
       TERN_(HAS_SHAPING_Y, if (axis == Y_AXIS) { shaping_y.factor = floor(shaping_factor); shaping_y.zeta = zeta; })
       if (was_on) hal.isr_on();
+    #elif ENABLED(GH_INPUT_SHAPING)
+      TERN_(HAS_GH_SHAPING_X, if (axis == X_AXIS) { shaping_x.zeta = zeta; })
+      TERN_(HAS_GH_SHAPING_Y, if (axis == Y_AXIS) { shaping_y.zeta = zeta; })
     #endif
   }
 
@@ -3081,6 +3084,9 @@ void Stepper::init() {
       }
 
       if (was_on) hal.isr_on();
+    #elif ENABLED(GH_INPUT_SHAPING)
+      TERN_(HAS_GH_SHAPING_X, if (axis == X_AXIS) { shaping_x.frequency = freq; })
+      TERN_(HAS_GH_SHAPING_Y, if (axis == Y_AXIS) { shaping_y.frequency = freq; })
     #endif
   }
 
@@ -3089,10 +3095,17 @@ void Stepper::init() {
     TERN_(HAS_ANY_SHAPING_Y, if (axis == Y_AXIS) return shaping_y.frequency);
     return -1;
   }
+  
   ShapeParams::ISType Stepper::get_shaping_type(const AxisEnum axis) {
     TERN_(HAS_ANY_SHAPING_X, if (axis == X_AXIS) return shaping_x.is_type);
     TERN_(HAS_ANY_SHAPING_Y, if (axis == Y_AXIS) return shaping_y.is_type);
     return ShapeParams::UNKNWON_TYPE;
+  }
+
+  void Stepper::set_shaping_type(const AxisEnum axis, ShapeParams::ISType is_type)
+  {
+      TERN_(HAS_GH_SHAPING_X, if (axis == X_AXIS) { shaping_x.is_type = is_type; })
+      TERN_(HAS_GH_SHAPING_Y, if (axis == Y_AXIS) { shaping_y.is_type = is_type; })
   }
 #endif
 
@@ -3359,7 +3372,7 @@ void Stepper::report_positions() {
     }while(0)
 
     #if ENABLED(GH_INPUT_SHAPING)
-      #define BABYSTEP_AXIS_NO_ENABLE(AXIS, INV, DIR) do{  \
+      #define BABYSTEP_AXIS_GH_SMARTSHAPER(AXIS, INV, DIR) do{  \
         const uint8_t old_dir = _READ_DIR(AXIS);           \
         DIR_WAIT_BEFORE();                                 \
         _APPLY_DIR(AXIS, _INVERT_DIR(AXIS)^DIR^INV);       \
@@ -3600,7 +3613,7 @@ void Stepper::report_positions() {
     IF_DISABLED(INTEGRATED_BABYSTEPPING, sei());
   }
 
-  void Stepper::do_babystep_without_enable(const AxisEnum axis, const bool direction) {
+  void Stepper::do_babystep_for_gh_smartshaper(const AxisEnum axis, const bool direction) {
 
     IF_DISABLED(INTEGRATED_BABYSTEPPING, cli());
 
@@ -3609,20 +3622,16 @@ void Stepper::report_positions() {
         case X_AXIS:
           #if CORE_IS_XY
             BABYSTEP_CORE(X, Y, 0, direction, 0);
-          #elif CORE_IS_XZ
-            BABYSTEP_CORE(X, Z, 0, direction, 0);
           #else
-            BABYSTEP_AXIS_NO_ENABLE(X, 0, direction);
+            BABYSTEP_AXIS_GH_SMARTSHAPER(X, 0, direction);
           #endif
           break;
 
         case Y_AXIS:
           #if CORE_IS_XY
             BABYSTEP_CORE(X, Y, 1, !direction, (CORESIGN(1)>0));
-          #elif CORE_IS_YZ
-            BABYSTEP_CORE(Y, Z, 0, direction, (CORESIGN(1)<0));
           #else
-            BABYSTEP_AXIS_NO_ENABLE(Y, 0, direction);
+            BABYSTEP_AXIS_GH_SMARTSHAPER(Y, 0, direction);
           #endif
           break;
       default: break;

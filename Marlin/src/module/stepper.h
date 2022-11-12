@@ -748,7 +748,7 @@ class Stepper {
     #endif
 
     #if ENABLED(GH_INPUT_SHAPING)    
-      static void do_babystep_without_enable(const AxisEnum axis, const bool direction); // perform a short step with a single stepper motor, outside of any convention without enabling driver
+      static void do_babystep_for_gh_smartshaper(const AxisEnum axis, const bool direction); // perform a short step with a single stepper motor, outside of any convention without enabling driver
     #endif
 
     #if HAS_MOTOR_CURRENT_PWM
@@ -807,6 +807,7 @@ class Stepper {
       static void set_shaping_frequency(const AxisEnum axis, const float freq);
       static float get_shaping_frequency(const AxisEnum axis);
       static ShapeParams::ISType get_shaping_type(const AxisEnum axis);
+      static void set_shaping_type(const AxisEnum axis, ShapeParams::ISType is_type);
     #endif
 
   private:

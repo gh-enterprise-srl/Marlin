@@ -1946,7 +1946,8 @@ void prepare_line_to_destination() {
   void homeaxis(const AxisEnum axis) {
 
     #if ENABLED(GH_INPUT_SHAPING)
-      update_smartshaper(axis);
+      TERN_(HAS_GH_SHAPING_X, if (axis == X_AXIS){program_smartshaper(axis, true);})
+      TERN_(HAS_GH_SHAPING_Y, if (axis == Y_AXIS){program_smartshaper(axis, true);})
     #endif
 
     #if EITHER(MORGAN_SCARA, MP_SCARA)

@@ -49,7 +49,7 @@ void GcodeSuite::M593_report(const bool forReplay/*=true*/) {
  * M593: Get or Set Input Shaping Parameters
  *  D<factor>    Set the zeta/damping factor. If axes (X, Y, etc.) are not specified, set for all axes.
  *  F<frequency> Set the frequency. If axes (X, Y, etc.) are not specified, set for all axes.
- *  T[map]       Input Shaping type, 0:ZV, 1:EI, 2:2H EI (not implemented yet)
+ *  T[map]       Input Shaping type (for GH SmartShaper drivers)-> 20:ZV, 21:MZV, 22:ZVD, EI:23
  *  X<1>         Set the given parameters only for the X axis.
  *  Y<1>         Set the given parameters only for the Y axis.
  */
@@ -72,20 +72,34 @@ void GcodeSuite::M593() {
   }
 
   if (parser.seen('F')) {
-    #if ENABLED(INPUT_SHAPING)
     const float freq = parser.value_float();
-    constexpr float max_freq = float(uint32_t(STEPPER_TIMER_RATE) / 2) / shaping_time_t(-2);
+    #if ENABLED(INPUT_SHAPING)
+      constexpr float max_freq = float(uint32_t(STEPPER_TIMER_RATE) / 2) / shaping_time_t(-2);
+    #endif
+    #if ENABLED(GH_INPUT_SHAPING)
+      constexpr float max_freq = 80;
+    #endif
     if (freq == 0.0f || freq > max_freq) {
       if (for_X) stepper.set_shaping_frequency(X_AXIS, freq);
       if (for_Y) stepper.set_shaping_frequency(Y_AXIS, freq);
     }
     else
       SERIAL_ECHOLNPGM("?Frequency (F) must be greater than ", max_freq, " or 0 to disable");
-    #endif
   }
+#if ENABLED(GH_INPUT_SHAPING)
+  if (parser.seen('T')) {
+    const uint8_t is_type = parser.value_ushort();
+    const uint8_t is_type_min = ShapeParams::ISType::ZV_SMART_SHAPER;
+    const uint8_t is_type_max = ShapeParams::ISType::EI_SMART_SHAPER;
+    if (WITHIN(is_type,is_type_min,is_type_max)) {
+      if (for_X) stepper.set_shaping_type(X_AXIS, (ShapeParams::ISType) is_type);
+      if (for_Y) stepper.set_shaping_type(Y_AXIS, (ShapeParams::ISType) is_type);
+    }
+    else
+      SERIAL_ECHOLNPGM("?Input Shaping Type (T) out of range (", is_type_min, "-", is_type_max, ")");
+  }
+#endif
 
-  // if (for_X) update_smartshaper(X_AXIS);
-  // if (for_Y) update_smartshaper(Y_AXIS);      
 }
 
 #endif
