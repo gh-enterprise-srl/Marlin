@@ -49,23 +49,10 @@
 #define _TMC5130_STANDALONE 0x5130B
 #define _TMC5160            0x5160A
 #define _TMC5160_STANDALONE 0x5160B
+#define _GH_SMARTSHAPER                 0xAC00A
+#define _GH_SMARTSHAPER_STANDALONE      0xAC00B
 
-// GH Smart Shaper
-#if X_DRIVER_TYPE == GH_SMARTSHAPER
-  #undef  X_DRIVER_TYPE
-  #define X_DRIVER_TYPE TMC2208
-  #define HAS_GH_SHAPING_X 1
-#endif
 
-#if Y_DRIVER_TYPE == GH_SMARTSHAPER
-  #undef  Y_DRIVER_TYPE
-  #define Y_DRIVER_TYPE TMC2208
-  #define HAS_GH_SHAPING_Y 1
-#endif
-
-#if HAS_GH_SHAPING_X || HAS_GH_SHAPING_Y
-  #define GH_INPUT_SHAPING 1
-#endif
 
 
 #define _DRIVER_ID(V) _CAT(_, V)
@@ -107,6 +94,44 @@
                       || AXIS_DRIVER_TYPE_U(T)  || AXIS_DRIVER_TYPE_V(T)  || AXIS_DRIVER_TYPE_W(T)  \
                       || AXIS_DRIVER_TYPE_X2(T) || AXIS_DRIVER_TYPE_Y2(T) || AXIS_DRIVER_TYPE_Z2(T) \
                       || AXIS_DRIVER_TYPE_Z3(T) || AXIS_DRIVER_TYPE_Z4(T) || HAS_E_DRIVER(T) )
+
+
+// GH Smart Shaper
+#if AXIS_DRIVER_TYPE_X(GH_SMARTSHAPER)
+  #undef  X_DRIVER_TYPE
+  #define X_DRIVER_TYPE TMC2208
+  #define HAS_GH_SHAPING_X 1
+#endif
+
+#if AXIS_DRIVER_TYPE_Y(GH_SMARTSHAPER)
+  #undef  Y_DRIVER_TYPE
+  #define Y_DRIVER_TYPE TMC2208
+  #define HAS_GH_SHAPING_Y 1
+#endif
+
+#if AXIS_DRIVER_TYPE_X(GH_SMARTSHAPER_STANDALONE)
+  #undef  X_DRIVER_TYPE
+  #define X_DRIVER_TYPE TMC2208_STANDALONE
+  #define HAS_GH_SHAPING_X      1
+  #define HAS_GH_STEALTHCHOP_X  1
+#endif
+
+#if AXIS_DRIVER_TYPE_Y(GH_SMARTSHAPER_STANDALONE)
+  #undef  Y_DRIVER_TYPE
+  #define Y_DRIVER_TYPE TMC2208_STANDALONE
+  #define HAS_GH_SHAPING_Y      1
+  #define HAS_GH_STEALTHCHOP_Y  1
+#endif
+
+
+#if HAS_GH_SHAPING_X || HAS_GH_SHAPING_Y
+  #define GH_INPUT_SHAPING 1  
+#endif
+#if HAS_GH_STEALTHCHOP_X || HAS_GH_STEALTHCHOP_Y
+  #define HAS_GH_STEALTHCHOP 1  
+#endif
+
+
 
 //
 // Trinamic Stepper Drivers

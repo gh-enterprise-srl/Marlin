@@ -22,16 +22,24 @@
 
 #include "../../../inc/MarlinConfig.h"
 
-#if HAS_STEALTHCHOP
+#if ANY(HAS_STEALTHCHOP, HAS_GH_STEALTHCHOP)
 
 #if AXIS_COLLISION('I')
   #error "M569 parameter 'I' collision with axis name."
 #endif
 
 #include "../../gcode.h"
+
+#if HAS_STEALTHCHOP
 #include "../../../feature/tmc_util.h"
 #include "../../../module/stepper/indirection.h"
+#endif
 
+#if HAS_GH_STEALTHCHOP
+#include "../../../module/stepper/gh.h"
+#endif
+
+#if HAS_STEALTHCHOP
 template<typename TMC>
 void tmc_say_stealth_status(TMC &st) {
   st.printLabel();
@@ -136,7 +144,18 @@ static void say_stealth_status() {
   OPTCODE(E6_HAS_STEALTHCHOP, TMC_SAY_STEALTH_STATUS(E6))
   OPTCODE(E7_HAS_STEALTHCHOP, TMC_SAY_STEALTH_STATUS(E7))
 }
+#endif
 
+#if HAS_GH_STEALTHCHOP
+void smartshaper_say_stealth_status(AxisEnum a) {
+  SERIAL_CHAR(AXIS_CHAR(a));
+  SERIAL_ECHOPGM("Smartshaper driver mode:\t");
+  SERIAL_ECHOLNF(get_smartshaper_stealth_status(a) ? F("stealthChop") : F("spreadCycle"));
+}
+#endif
+
+
+#if ANY(HAS_STEALTHCHOP, HAS_GH_STEALTHCHOP)
 /**
  * M569: Enable stealthChop on an axis
  *
@@ -145,15 +164,31 @@ static void say_stealth_status() {
  *   No arguments reports the stealthChop status of all capable drivers.
  */
 void GcodeSuite::M569() {
+#if HAS_STEALTHCHOP
   if (parser.seen('S'))
     set_stealth_status(parser.value_bool(), get_target_e_stepper_from_command(-2));
   else
     say_stealth_status();
+#endif
+
+#if HAS_GH_STEALTHCHOP
+  if (parser.seen('S')) {
+    const bool stealth_enabled = parser.value_bool();
+    const bool seen_X = TERN0(HAS_GH_STEALTHCHOP_X, parser.seen_test('X')),
+               seen_Y = TERN0(HAS_GH_STEALTHCHOP_Y, parser.seen_test('Y'));    
+    if (seen_X) set_smartshaper_stealth_status(X_AXIS, stealth_enabled);
+    if (seen_Y) set_smartshaper_stealth_status(Y_AXIS, stealth_enabled);
+  }
+  else {
+    TERN_(HAS_GH_STEALTHCHOP_X,smartshaper_say_stealth_status(X_AXIS));
+    TERN_(HAS_GH_STEALTHCHOP_Y,smartshaper_say_stealth_status(Y_AXIS));
+  }
+#endif
+
 }
 
 void GcodeSuite::M569_report(const bool forReplay/*=true*/) {
   report_heading(forReplay, F(STR_DRIVER_STEPPING_MODE));
-
   auto say_M569 = [](const bool forReplay, FSTR_P const etc=nullptr, const bool eol=false) {
     if (!forReplay) SERIAL_ECHO_START();
     SERIAL_ECHOPGM("  M569 S1");
@@ -164,6 +199,7 @@ void GcodeSuite::M569_report(const bool forReplay/*=true*/) {
     if (eol) SERIAL_EOL();
   };
 
+#if HAS_STEALTHCHOP
   const bool chop_x = TERN0(X_HAS_STEALTHCHOP, stepperX.get_stored_stealthChop()),
              chop_y = TERN0(Y_HAS_STEALTHCHOP, stepperY.get_stored_stealthChop()),
              chop_z = TERN0(Z_HAS_STEALTHCHOP, stepperZ.get_stored_stealthChop()),
@@ -234,6 +270,22 @@ void GcodeSuite::M569_report(const bool forReplay/*=true*/) {
   if (TERN0(E5_HAS_STEALTHCHOP, stepperE5.get_stored_stealthChop())) { say_M569(forReplay, F("T5 E"), true); }
   if (TERN0(E6_HAS_STEALTHCHOP, stepperE6.get_stored_stealthChop())) { say_M569(forReplay, F("T6 E"), true); }
   if (TERN0(E7_HAS_STEALTHCHOP, stepperE7.get_stored_stealthChop())) { say_M569(forReplay, F("T7 E"), true); }
+#endif
+#if HAS_GH_STEALTHCHOP
+  const bool chop_x = TERN0(HAS_GH_STEALTHCHOP_X, get_smartshaper_stealth_status(X_AXIS)),
+             chop_y = TERN0(HAS_GH_STEALTHCHOP_Y, get_smartshaper_stealth_status(Y_AXIS));
+
+  if (chop_x || chop_y ) {
+    say_M569(forReplay);
+    NUM_AXIS_CODE(
+      if (chop_x) SERIAL_ECHOPGM_P(SP_X_STR),
+      if (chop_y) SERIAL_ECHOPGM_P(SP_Y_STR),
+    );
+    SERIAL_EOL();
+  }
+#endif
 }
 
-#endif // HAS_STEALTHCHOP
+#endif
+
+#endif 

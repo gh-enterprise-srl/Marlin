@@ -34,6 +34,11 @@
 #define SIGNATURE_LEN 13
 #define DELAY_48KHZ 20800
 
+// stealthchop driver store variable for standalone mode.
+// at poweron stealthchop is enabled
+OPTCODE(HAS_GH_STEALTHCHOP_X,  bool stealthChopX_enabled = true);
+OPTCODE(HAS_GH_STEALTHCHOP_Y,  bool stealthChopY_enabled = true);
+
 enum GHInputShapingAlgorithms
 {
   Disabled,
@@ -121,6 +126,10 @@ static void configure_smart_shaper(AxisEnum a, ShapeParams::ISType is_type, floa
   const uint8_t freq_par = (input_shaping_disabled ? 0 : (uint8_t) freq);
   const uint8_t sampling_freq_KHz = 64;
   GHTMC2225SpreadPin spread_pin = SpreadPinLow;
+  // SpreadPin is used only for standalone drivers
+  TERN_(HAS_GH_STEALTHCHOP_X, if(a == X_AXIS) spread_pin = (stealthChopX_enabled ? SpreadPinLow : SpreadPinHigh) );
+  TERN_(HAS_GH_STEALTHCHOP_Y, if(a == Y_AXIS) spread_pin = (stealthChopY_enabled ? SpreadPinLow : SpreadPinHigh) );
+  
   const uint8_t sync_oscillation = 0;
 
   // Signature
@@ -154,5 +163,19 @@ void program_smartshaper(AxisEnum a, bool disable_motor_while_configuring)
 
   configure_smart_shaper(a, is_type, freq, zeta_perc, disable_motor_while_configuring);
 }
+
+#if HAS_GH_STEALTHCHOP
+void set_smartshaper_stealth_status(AxisEnum a, bool enabled)
+{
+  TERN_(HAS_GH_STEALTHCHOP_X, if (a == X_AXIS) stealthChopX_enabled = enabled);
+  TERN_(HAS_GH_STEALTHCHOP_Y, if (a == Y_AXIS) stealthChopY_enabled = enabled);
+}
+bool get_smartshaper_stealth_status(AxisEnum a)
+{
+  TERN_(HAS_GH_STEALTHCHOP_X, if (a == X_AXIS) return stealthChopX_enabled);
+  TERN_(HAS_GH_STEALTHCHOP_Y, if (a == Y_AXIS) return stealthChopY_enabled);
+  return false;
+}
+#endif
 
 #endif

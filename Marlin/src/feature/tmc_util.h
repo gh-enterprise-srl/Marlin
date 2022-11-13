@@ -114,6 +114,8 @@ class TMCMarlin : public TMC, public TMCStorage<AXIS_LETTER, DRIVER_ID> {
       void refresh_stepping_mode()          { this->en_pwm_mode(this->stored.stealthChop_enabled); }
       void set_stealthChop(const bool stch) { this->stored.stealthChop_enabled = stch; refresh_stepping_mode(); }
       bool toggle_stepping_mode()           { set_stealthChop(!this->stored.stealthChop_enabled); return get_stealthChop(); }
+    #elif GH_INPUT_SHAPING
+    
     #endif
 
     void set_chopper_times(const chopper_timing_t &ct) {

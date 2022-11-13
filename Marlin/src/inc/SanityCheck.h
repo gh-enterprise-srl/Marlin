@@ -4293,6 +4293,13 @@ static_assert(_PLUS_TEST(4), "HOMING_FEEDRATE_MM_M values must be positive.");
   #endif
 #endif
 
+#if ENABLED(GH_INPUT_SHAPING)
+  #if (HAS_GH_SHAPING_X && !HAS_GH_SHAPING_Y) || (HAS_GH_SHAPING_Y && !HAS_GH_SHAPING_X)
+    #error "Cannot be used only one GH SmartShaper driver. X/Y drivers should be both configured as GH SmartShaper."
+  #endif
+#endif
+
+
 // Misc. Cleanup
 #undef _TEST_PWM
 #undef _NUM_AXES_STR

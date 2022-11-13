@@ -1072,7 +1072,7 @@ private:
     static void M554_report();
   #endif
 
-  #if HAS_STEALTHCHOP
+  #if ANY(HAS_STEALTHCHOP, HAS_GH_STEALTHCHOP)
     static void M569();
     static void M569_report(const bool forReplay=true);
   #endif

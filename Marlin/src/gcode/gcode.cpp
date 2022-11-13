@@ -1017,6 +1017,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
           case 914: M914(); break;                                // M914: Set StallGuard sensitivity.
         #endif
         case 919: M919(); break;                                  // M919: Set stepper Chopper Times
+      #elif HAS_GH_STEALTHCHOP
+          case 569: M569(); break;                                // M569: Enable stealthChop on an axis for GH SmartShaper
       #endif
 
       #if HAS_MICROSTEPS

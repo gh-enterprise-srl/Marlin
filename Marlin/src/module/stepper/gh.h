@@ -31,3 +31,8 @@
 #include "../stepper.h"
 void program_smartshaper(AxisEnum a, bool disable_motor_while_configuring);
 #endif
+
+#if HAS_GH_STEALTHCHOP
+void set_smartshaper_stealth_status(AxisEnum a, bool enabled);
+bool get_smartshaper_stealth_status(AxisEnum a);
+#endif
