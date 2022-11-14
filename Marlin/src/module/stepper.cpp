@@ -3381,7 +3381,7 @@ void Stepper::report_positions() {
         _APPLY_STEP(AXIS, !_INVERT_STEP_PIN(AXIS), true);  \
         _PULSE_WAIT();                                     \
         _APPLY_STEP(AXIS, _INVERT_STEP_PIN(AXIS), true);   \
-        DELAY_NS(2000);                                    \
+         DELAY_NS(8000);                                    \
         _APPLY_DIR(AXIS, old_dir);                         \
         EXTRA_DIR_WAIT_AFTER();                            \
       }while(0)
