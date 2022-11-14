@@ -30,13 +30,13 @@
 
 void GcodeSuite::M593_report(const bool forReplay/*=true*/) {
   report_heading_etc(forReplay, F("Input Shaping"));
-  #if HAS_SHAPING_X
+  #if HAS_SHAPING_X || HAS_GH_SHAPING_X
     SERIAL_ECHOLNPGM("  M593 X"
       " F", stepper.get_shaping_frequency(X_AXIS),
       " D", stepper.get_shaping_damping_ratio(X_AXIS)
     );
   #endif
-  #if HAS_SHAPING_Y
+  #if HAS_SHAPING_Y || HAS_GH_SHAPING_Y
     TERN_(HAS_SHAPING_X, report_echo_start(forReplay));
     SERIAL_ECHOLNPGM("  M593 Y"
       " F", stepper.get_shaping_frequency(Y_AXIS),
@@ -79,12 +79,12 @@ void GcodeSuite::M593() {
     #if ENABLED(GH_INPUT_SHAPING)
       constexpr float max_freq = 80;
     #endif
-    if (freq == 0.0f || freq > max_freq) {
+    if (freq == 0.0f || ( freq < max_freq && freq > 0)) {
       if (for_X) stepper.set_shaping_frequency(X_AXIS, freq);
       if (for_Y) stepper.set_shaping_frequency(Y_AXIS, freq);
     }
     else
-      SERIAL_ECHOLNPGM("?Frequency (F) must be greater than ", max_freq, " or 0 to disable");
+      SERIAL_ECHOLNPGM("?Frequency (F) must be less than ", max_freq, " or 0 to disable");
   }
 #if ENABLED(GH_INPUT_SHAPING)
   if (parser.seen('T')) {
